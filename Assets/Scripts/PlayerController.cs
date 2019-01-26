@@ -2,93 +2,119 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour
-{
-    [SerializeField]
-    private float speed = 5;
+public class PlayerController : MonoBehaviour {
 
-    [SerializeField]
-    private float lookSensitivity = 3f;
+    public float playerSpeed;
+    public float playerVelocity;
+    public float jumpHeight;
 
-    float nextFire = 0.0f;
-    public float firerate = 0.5f;
-    public int bulletSpeed = 5;
-    public float jumpHeight = 10f;
+    public bool grounded;
+    public bool usedDoubleJump;
 
-    private PlayerMove motor;
+    public bool hangingOffWall;
+    public bool canHang;
+    public float wallDrag;
+    public float kickBack;
+    public float hangDelay;
 
-    [SerializeField]
-    private Transform firePoint;
+    public Transform groundCheck;
+    public LayerMask whatIsGround;
+    public float groundCheckRadius;
 
-    [SerializeField]
-    private GameObject bullet;
-
-    [SerializeField]
-    private GameObject AR;
-
-    [SerializeField]
-    private Camera camera;
-    //Input.GetButton("Horizontal"); ARTIFACT
+    public Transform wallChecker;
+    public LayerMask whatIsWall;
+    public float wallCheckRadius;
 
 	// Use this for initialization
-    // Start is called before the first frame update
-    void Start()
-    {
-         motor = GetComponent<PlayerMove>();
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        //return a percentage of how hard you are pushing a stick
-        float xMovment = Input.GetAxisRaw("Horizontal");
-        float yMovment = Input.GetAxisRaw("Vertical");
-
-        //make a velocity vector that "pushes" the character
-        Vector3 moveSide = transform.right * xMovment;
-        Vector3 moveFront = transform.forward * yMovment;
-
-        //the speed of the character
-        Vector3 velocity = (moveSide + moveFront).normalized * speed;
-
-        //move 
-        motor.move(velocity);
-
-        //Calculate rotation as a 3D vector
-        float yRotation = Input.GetAxisRaw("Mouse X");
-        float xRotation = Input.GetAxisRaw("Mouse Y");
+	void Start () {
         
-        //Sets horizontal rotation with a look sensitivity
-        Vector3 rotation = new Vector3(0f, yRotation, 0f) * lookSensitivity;
-        Vector3 camRotation = new Vector3(xRotation, 0f, 0f) * lookSensitivity;
+	}
+	
+	// Update is called once per frame
+	void Update () {
+        checkMove();
+        checkJump();
+        
+	}
 
-        //Applies rotation
-        motor.rotate(rotation);
-        motor.camRotate(camRotation);
-
-        //AR.transform.Rotate(-camRotation);
 
 
-        //Checks for input from left mouse button
-        //Shoots based on fire rate
-        if (Input.GetButton("Fire1") && Time.time > nextFire)
-        {
-            shootBullet(rotation);
-        }
-
-        if (Input.GetButton("Jump"))
-        {
-            Vector3 jumpVelocity = new Vector3(0f, jumpHeight, 0f);
-            motor.playerJump(jumpVelocity);
-        }
-    }
-
-    void shootBullet(Vector3 rotation)
+    private void FixedUpdate()
     {
-        var firedBullet = Instantiate(bullet, firePoint.position, firePoint.rotation);
-        firedBullet.GetComponent<Rigidbody>().velocity = (firedBullet.transform.forward + camera.transform.forward) * bulletSpeed;
-        nextFire = Time.time + firerate;
-
-        Destroy(firedBullet, 2f);
+        grounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, whatIsGround);
+        hangingOffWall = Physics2D.OverlapCircle(wallChecker.position, wallCheckRadius, whatIsWall);
+        
     }
+
+    public void checkMove()
+    {
+        playerVelocity = playerSpeed * Input.GetAxisRaw("Horizontal");
+
+        if (playerVelocity < 0)
+        {
+            GetComponent<Rigidbody2D>().velocity = new Vector2(playerVelocity, GetComponent<Rigidbody2D>().velocity.y);
+            transform.localScale = new Vector3(-1f, 1f, 1f);
+        }
+
+        if (playerVelocity > 0)
+        {
+            GetComponent<Rigidbody2D>().velocity = new Vector2(playerVelocity, GetComponent<Rigidbody2D>().velocity.y);
+            transform.localScale = new Vector3(1f, 1f, 1f);
+        }
+    }
+
+    public void checkJump()
+    {
+        checkHanging();
+
+        if (grounded || hangingOffWall)
+        {
+            usedDoubleJump = false;
+        }
+
+        if (Input.GetButtonDown("Jump") && (grounded || hangingOffWall)) 
+        {
+            if (Input.GetButtonDown("Jump") && hangingOffWall)
+            {
+                if (transform.localScale.x == -1f)
+                {
+                    GetComponent<Rigidbody2D>().velocity = new Vector2(kickBack, GetComponent<Rigidbody2D>().velocity.y);
+                    transform.localScale = new Vector3(1f, 1f, 1f);
+                    StartCoroutine("stopHanging");
+                }
+                else if(transform.localScale.x == 1f)
+                {
+                    GetComponent<Rigidbody2D>().velocity = new Vector2(-kickBack, GetComponent<Rigidbody2D>().velocity.y);
+                    transform.localScale = new Vector3(-1f, 1f, 1f);
+                    StartCoroutine("stopHanging");
+                }
+            }
+
+            GetComponent<Rigidbody2D>().velocity = new Vector2(GetComponent<Rigidbody2D>().velocity.x, jumpHeight);
+        } 
+
+        if(Input.GetButtonDown("Jump") && !usedDoubleJump && !grounded && !hangingOffWall)
+        {
+            GetComponent<Rigidbody2D>().velocity = new Vector2(GetComponent<Rigidbody2D>().velocity.x, jumpHeight);
+            usedDoubleJump = true;
+        }
+    }
+
+    public void checkHanging()
+    {
+        if (hangingOffWall && canHang)
+        {
+            GetComponent<Rigidbody2D>().velocity = new Vector2(GetComponent<Rigidbody2D>().velocity.x, -wallDrag);
+        }
+    }
+
+    public IEnumerator stopHanging()
+    {
+        canHang = false;
+        yield return new WaitForSeconds(hangDelay);
+        canHang = true;
+
+    }
+
+
 }
