@@ -27,10 +27,14 @@ public class PlayerController : MonoBehaviour
     public LayerMask whatIsWall;
     public float wallCheckRadius;
 
+    public float animSpeedThreshold;
+
+    private Animator anim;
+
     // Use this for initialization
     void Start()
     {
-
+        anim = GetComponent<Animator>();
     }
 
     // Update is called once per frame
@@ -38,6 +42,8 @@ public class PlayerController : MonoBehaviour
     {
         checkMove();
         checkJump();
+
+        updateAnim();
 
     }
 
@@ -61,11 +67,33 @@ public class PlayerController : MonoBehaviour
                 transform.localScale = new Vector3(-1f, 1f, 1f);
             }
 
-            if (playerVelocity > 0)
+            else if (playerVelocity > 0)
             {
                 GetComponent<Rigidbody2D>().velocity = new Vector2(GetComponent<Rigidbody2D>().velocity.x + playerVelocity, GetComponent<Rigidbody2D>().velocity.y);
                 transform.localScale = new Vector3(1f, 1f, 1f);
             }
+            else
+            {
+                //idle movement code here if necessary
+            }
+        }
+    }
+
+    public void updateAnim()
+    {
+        if (GetComponent<Rigidbody2D>().velocity.x > animSpeedThreshold && transform.localScale.x == 1f)
+        {
+
+        anim.SetBool("isMoving", true);
+        }
+        else if (-GetComponent<Rigidbody2D>().velocity.x > animSpeedThreshold && transform.localScale.x == -1f)
+        {
+
+            anim.SetBool("isMoving", true);
+        }
+        else
+        {
+            anim.SetBool("isMoving", false);
         }
     }
 
@@ -73,7 +101,7 @@ public class PlayerController : MonoBehaviour
     {
         checkHanging();
 
-        if (grounded || hangingOffWall)
+        if (grounded || (hangingOffWall && canHang))
         {
             usedDoubleJump = false;
         }
@@ -99,7 +127,7 @@ public class PlayerController : MonoBehaviour
             GetComponent<Rigidbody2D>().velocity = new Vector2(GetComponent<Rigidbody2D>().velocity.x, jumpHeight);
         }
 
-        if (Input.GetButtonDown("Jump") && !usedDoubleJump && !grounded && !hangingOffWall)
+        if (Input.GetButtonDown("Jump") && !usedDoubleJump && !grounded && !(hangingOffWall && canHang))
         {
             GetComponent<Rigidbody2D>().velocity = new Vector2(GetComponent<Rigidbody2D>().velocity.x, jumpHeight);
             usedDoubleJump = true;
