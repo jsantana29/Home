@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour {
+public class PlayerController : MonoBehaviour
+{
 
     public float playerSpeed;
-    public float playerVelocity;
+    private float playerVelocity;
+    public float terminalVelocity;
     public float jumpHeight;
 
     public bool grounded;
@@ -25,17 +27,19 @@ public class PlayerController : MonoBehaviour {
     public LayerMask whatIsWall;
     public float wallCheckRadius;
 
-	// Use this for initialization
-	void Start () {
-        
-	}
-	
-	// Update is called once per frame
-	void Update () {
+    // Use this for initialization
+    void Start()
+    {
+
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
         checkMove();
         checkJump();
-        
-	}
+
+    }
 
 
 
@@ -43,23 +47,25 @@ public class PlayerController : MonoBehaviour {
     {
         grounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, whatIsGround);
         hangingOffWall = Physics2D.OverlapCircle(wallChecker.position, wallCheckRadius, whatIsWall);
-        
+
     }
 
     public void checkMove()
     {
         playerVelocity = playerSpeed * Input.GetAxisRaw("Horizontal");
-
-        if (playerVelocity < 0)
+        if (Mathf.Abs(GetComponent<Rigidbody2D>().velocity.magnitude) < terminalVelocity)
         {
-            GetComponent<Rigidbody2D>().velocity = new Vector2(playerVelocity, GetComponent<Rigidbody2D>().velocity.y);
-            transform.localScale = new Vector3(-1f, 1f, 1f);
-        }
+            if (playerVelocity < 0)
+            {
+                GetComponent<Rigidbody2D>().velocity = new Vector2(GetComponent<Rigidbody2D>().velocity.x + playerVelocity, GetComponent<Rigidbody2D>().velocity.y);
+                transform.localScale = new Vector3(-1f, 1f, 1f);
+            }
 
-        if (playerVelocity > 0)
-        {
-            GetComponent<Rigidbody2D>().velocity = new Vector2(playerVelocity, GetComponent<Rigidbody2D>().velocity.y);
-            transform.localScale = new Vector3(1f, 1f, 1f);
+            if (playerVelocity > 0)
+            {
+                GetComponent<Rigidbody2D>().velocity = new Vector2(GetComponent<Rigidbody2D>().velocity.x + playerVelocity, GetComponent<Rigidbody2D>().velocity.y);
+                transform.localScale = new Vector3(1f, 1f, 1f);
+            }
         }
     }
 
@@ -72,7 +78,7 @@ public class PlayerController : MonoBehaviour {
             usedDoubleJump = false;
         }
 
-        if (Input.GetButtonDown("Jump") && (grounded || hangingOffWall)) 
+        if (Input.GetButtonDown("Jump") && (grounded || hangingOffWall))
         {
             if (Input.GetButtonDown("Jump") && hangingOffWall)
             {
@@ -82,7 +88,7 @@ public class PlayerController : MonoBehaviour {
                     transform.localScale = new Vector3(1f, 1f, 1f);
                     StartCoroutine("stopHanging");
                 }
-                else if(transform.localScale.x == 1f)
+                else if (transform.localScale.x == 1f)
                 {
                     GetComponent<Rigidbody2D>().velocity = new Vector2(-kickBack, GetComponent<Rigidbody2D>().velocity.y);
                     transform.localScale = new Vector3(-1f, 1f, 1f);
@@ -91,9 +97,9 @@ public class PlayerController : MonoBehaviour {
             }
 
             GetComponent<Rigidbody2D>().velocity = new Vector2(GetComponent<Rigidbody2D>().velocity.x, jumpHeight);
-        } 
+        }
 
-        if(Input.GetButtonDown("Jump") && !usedDoubleJump && !grounded && !hangingOffWall)
+        if (Input.GetButtonDown("Jump") && !usedDoubleJump && !grounded && !hangingOffWall)
         {
             GetComponent<Rigidbody2D>().velocity = new Vector2(GetComponent<Rigidbody2D>().velocity.x, jumpHeight);
             usedDoubleJump = true;
@@ -111,6 +117,7 @@ public class PlayerController : MonoBehaviour {
     public IEnumerator stopHanging()
     {
         canHang = false;
+        //hangingOffWall = false;
         yield return new WaitForSeconds(hangDelay);
         canHang = true;
 
