@@ -19,11 +19,15 @@ public class PlayerController : MonoBehaviour
     public float kickBack;
     public float hangDelay;
 
+    private float jumpTimer = 0.3f;
+
     public Transform groundCheck;
     public LayerMask whatIsGround;
     public float groundCheckRadius;
 
     public Transform wallChecker;
+
+    
     public LayerMask whatIsWall;
     public float wallCheckRadius;
 
@@ -59,8 +63,9 @@ public class PlayerController : MonoBehaviour
     public void checkMove()
     {
         playerVelocity = playerSpeed * Input.GetAxisRaw("Horizontal");
-        if (Mathf.Abs(GetComponent<Rigidbody2D>().velocity.magnitude) < terminalVelocity)
-        {
+       
+            
+
             if (playerVelocity < 0)
             {
                 GetComponent<Rigidbody2D>().velocity = new Vector2(GetComponent<Rigidbody2D>().velocity.x + playerVelocity, GetComponent<Rigidbody2D>().velocity.y);
@@ -76,7 +81,11 @@ public class PlayerController : MonoBehaviour
             {
                 //idle movement code here if necessary
             }
-        }
+
+            if (Mathf.Abs(GetComponent<Rigidbody2D>().velocity.magnitude) > terminalVelocity){
+                GetComponent<Rigidbody2D>().velocity = new Vector2(GetComponent<Rigidbody2D>().velocity.x - playerVelocity, GetComponent<Rigidbody2D>().velocity.y);
+            }
+        
     }
 
     public void updateAnim()
@@ -95,6 +104,8 @@ public class PlayerController : MonoBehaviour
         {
             anim.SetBool("isMoving", false);
         }
+
+
     }
 
     public void checkJump()
@@ -108,6 +119,9 @@ public class PlayerController : MonoBehaviour
 
         if (Input.GetButtonDown("Jump") && (grounded || hangingOffWall))
         {
+            //StartCoroutine("hasJumped");
+            anim.SetTrigger("hasJumped");
+            anim.SetBool("grounded", grounded);
             if (Input.GetButtonDown("Jump") && hangingOffWall)
             {
                 if (transform.localScale.x == -1f)
@@ -148,6 +162,15 @@ public class PlayerController : MonoBehaviour
         //hangingOffWall = false;
         yield return new WaitForSeconds(hangDelay);
         canHang = true;
+
+    }
+
+    public IEnumerator hasJumped()
+    {
+        anim.SetTrigger("hasJumped");
+        //hangingOffWall = false;
+        yield return new WaitForSeconds(jumpTimer);
+        //anim.SetBool("hasJumped", false);
 
     }
 
